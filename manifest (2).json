@@ -1,0 +1,21 @@
+{
+  "name": "El Club de las Historias",
+  "short_name": "Club Historias",
+  "description": "Biblioteca secreta de lectores · CEIP Puente de Simancas",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#120a05",
+  "theme_color": "#c9a059",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' fill='%23120a05'/><text y='340' x='50%' text-anchor='middle' font-size='320' font-family='serif'>📖</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "books"],
+  "screenshots": []
+}
