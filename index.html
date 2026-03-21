@@ -286,6 +286,8 @@ body::after { content:'\01F4D6'; position:fixed; bottom:-5px; left:50%; transfor
 .foro-msg-texto { font-family:'Crimson Text',serif; font-size:1.05rem; color:var(--pergamino-oscuro); line-height:1.6; }
 .foro-msg-propio { border-left-color:var(--rojo-sello); }
 .foro-msg-propio .foro-msg-apodo { color:var(--oro); }
+.foro-msg-maestro { border-left-color:#c09020; background:rgba(192,144,32,0.06); }
+.foro-msg-maestro .foro-msg-apodo { color:#c09020; font-style:italic; }
 .btn-del-msg { position:absolute; top:0.6rem; right:0.8rem; background:transparent; border:none; color:rgba(139,32,32,0.4); font-size:0.75rem; cursor:pointer; font-family:'Cinzel',serif; padding:0.2rem 0.4rem; transition:color 0.2s; display:none; }
 .foro-msg:hover .btn-del-msg { display:block; }
 .btn-del-msg:hover { color:#e05050; }
@@ -386,6 +388,20 @@ body::after { content:'\01F4D6'; position:fixed; bottom:-5px; left:50%; transfor
   white-space:nowrap; max-width:90vw;
 }
 #toast.visible { opacity:1; transform:translateX(-50%) translateY(0); }
+
+/* ══ REPOSITORIO DESPLEGABLE ══ */
+#repositorioExtra { display:none; }
+#repositorioExtra.abierto { display:contents; }
+.btn-ver-mas {
+  grid-column: 1 / -1; margin-top:0.5rem;
+  font-family:'Cinzel',serif; font-size:0.8rem; letter-spacing:0.15em;
+  background:transparent; border:1px dashed var(--oro-oscuro); color:var(--oro-oscuro);
+  padding:0.7rem 2rem; cursor:pointer; transition:all 0.25s; width:100%;
+  display:flex; align-items:center; justify-content:center; gap:0.6rem;
+}
+.btn-ver-mas:hover { border-color:var(--oro); color:var(--oro); }
+.btn-ver-mas .chevron { transition:transform 0.3s; display:inline-block; font-style:normal; }
+.btn-ver-mas.abierto .chevron { transform:rotate(180deg); }
 </style>
 </head>
 <body>
@@ -576,6 +592,12 @@ body::after { content:'\01F4D6'; position:fixed; bottom:-5px; left:50%; transfor
     <div class="panel-maestro-inner">
       <div class="panel-maestro-titulo">🔒 Panel del Maestro de Lectura</div>
       <div class="stats-grid" id="statsGrid"></div>
+      <div id="maestroForoInput" style="display:none;margin-bottom:1.5rem">
+        <div style="display:flex;gap:0.8rem;align-items:flex-end">
+          <textarea id="maestroMsgInput" class="foro-input" placeholder="Escribe un mensaje al salón como Maestro de Lectura…" maxlength="500" style="border-color:var(--rojo-sello);flex:1"></textarea>
+          <button class="btn-foro-enviar btn-acc" data-action="maestroenviarmsg" style="border-color:var(--rojo-sello);color:var(--rojo-sello);height:70px">✦ Publicar<br>mensaje</button>
+        </div>
+      </div>
       <div class="maestro-tabs">
         <button class="tab-btn activo" onclick="cambiarTab(event,'tabSocios')">Socios del Club</button>
         <button class="tab-btn" onclick="cambiarTab(event,'tabLibros')">Archivo Completo</button>
@@ -804,6 +826,25 @@ async function cargarLibros() {
   renderRepositorio(lecturas);
 }
 
+function mkCard(lib, lecturas) {
+  var lect = lecturas[lib.id] || {};
+  var stars = lect.estrellas || 0;
+  var card = document.createElement('div');
+  card.className = 'libro-card' + (lib.estado === 'pendiente' ? ' pendiente' : '');
+  card.innerHTML =
+    '<span class="libro-emoji">' + (lib.emoji||'📖') + '</span>' +
+    '<div class="libro-titulo">' + lib.titulo + '</div>' +
+    '<div class="libro-autor">— ' + lib.autor + '</div>' +
+    '<div class="libro-resena">' + lib.resena + '</div>' +
+    '<div class="libro-addedby">Sellado por <em>' + (lib.añadidoPor||'?') + '</em></div>' +
+    (lib.estado === 'pendiente' ? '<div class="libro-pendiente-badge">⏳ Esperando aprobación del Maestro</div>' :
+     lib.estado === 'aprobado'  ? '<div class="libro-aprobado-badge">✓ Aprobado · +5 mensajes</div>' : '') +
+    '<div class="estrellas" id="stars-' + lib.id + '" data-val="' + stars + '">' + mkStars(lib.id, stars) + '</div>' +
+    '<textarea class="libro-comentario" id="com-' + lib.id + '" placeholder="Mi opinión…">' + (lect.comentario||'') + '</textarea>' +
+    '<button class="btn-guardar btn-acc" data-action="guardar" data-id="' + lib.id + '">Sellar lectura</button>';
+  return card;
+}
+
 function renderRepositorio(lecturas) {
   var repo = document.getElementById('repositorio');
   repo.innerHTML = '';
@@ -811,24 +852,34 @@ function renderRepositorio(lecturas) {
     repo.innerHTML = '<p style="color:var(--pergamino-oscuro);font-family:IM Fell English,serif;font-style:italic;grid-column:1/-1;padding:1rem 0">El archivo está vacío. ¡Sella el primer libro!</p>';
     return;
   }
-  libros.forEach(function(lib) {
-    var lect = lecturas[lib.id] || {};
-    var stars = lect.estrellas || 0;
-    var card = document.createElement('div');
-    card.className = 'libro-card' + (lib.estado === 'pendiente' ? ' pendiente' : '');
-    card.innerHTML =
-      '<span class="libro-emoji">' + (lib.emoji||'📖') + '</span>' +
-      '<div class="libro-titulo">' + lib.titulo + '</div>' +
-      '<div class="libro-autor">— ' + lib.autor + '</div>' +
-      '<div class="libro-resena">' + lib.resena + '</div>' +
-      '<div class="libro-addedby">Sellado por <em>' + (lib.añadidoPor||'?') + '</em></div>' +
-      (lib.estado === 'pendiente' ? '<div class="libro-pendiente-badge">⏳ Esperando aprobación del Maestro</div>' :
-       lib.estado === 'aprobado'  ? '<div class="libro-aprobado-badge">✓ Aprobado · +5 mensajes</div>' : '') +
-      '<div class="estrellas" id="stars-' + lib.id + '" data-val="' + stars + '">' + mkStars(lib.id, stars) + '</div>' +
-      '<textarea class="libro-comentario" id="com-' + lib.id + '" placeholder="Mi opinión…">' + (lect.comentario||'') + '</textarea>' +
-      '<button class="btn-guardar btn-acc" data-action="guardar" data-id="' + lib.id + '">Sellar lectura</button>';
-    repo.appendChild(card);
-  });
+  var visibles = libros.slice(0, 3);
+  var resto    = libros.slice(3);
+
+  visibles.forEach(function(lib) { repo.appendChild(mkCard(lib, lecturas)); });
+
+  if (resto.length > 0) {
+    var extra = document.createElement('div');
+    extra.id = 'repositorioExtra';
+    extra.style.cssText = 'display:contents';
+    extra.style.display = 'none';
+    resto.forEach(function(lib) { extra.appendChild(mkCard(lib, lecturas)); });
+    repo.appendChild(extra);
+
+    var btn = document.createElement('button');
+    btn.className = 'btn-ver-mas';
+    btn.id = 'btnVerMasLibros';
+    btn.innerHTML = '<span class="chevron">▼</span> Ver ' + resto.length + ' libro' + (resto.length>1?'s':'') + ' más';
+    btn.onclick = function() {
+      var ex = document.getElementById('repositorioExtra');
+      var isOpen = ex.style.display !== 'none';
+      ex.style.display = isOpen ? 'none' : 'contents';
+      btn.classList.toggle('abierto', !isOpen);
+      btn.innerHTML = isOpen
+        ? '<span class="chevron">▼</span> Ver ' + resto.length + ' libro' + (resto.length>1?'s':'') + ' más'
+        : '<span class="chevron abierto" style="transform:rotate(180deg)">▼</span> Ocultar libros';
+    };
+    repo.appendChild(btn);
+  }
 }
 
 function mkStars(id, val) {
@@ -982,6 +1033,7 @@ window.verificarMaestro = async function() {
   var panel = document.getElementById('panelMaestro');
   panel.classList.add('visible');
   panel.scrollIntoView({ behavior:'smooth' });
+  document.getElementById('maestroForoInput').style.display = 'block';
   await cargarPanelMaestro();
 };
 
@@ -1123,11 +1175,12 @@ function renderForo() {
     return;
   }
   el.innerHTML = '<div class="foro-reciente-label">↑ más reciente</div>' + foroMsgsCache.map(function(msg) {
-    var esPropio = socioActual && msg.apodo === socioActual.apodo;
+    var esMaestroMsg = !!msg.esMaestro;
+    var esPropio = !esMaestroMsg && socioActual && msg.apodo === socioActual.apodo;
     var esMaestro = !!window._maestroActivo;
     var fecha = msg.timestamp ? new Date(msg.timestamp.seconds*1000).toLocaleDateString('es-ES',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
     var btnDel = (esPropio || esMaestro) ? '<button class="btn-del-msg btn-acc" data-action="delmsg" data-id="' + msg.id + '">✕ borrar</button>' : '';
-    return '<div class="foro-msg' + (esPropio?' foro-msg-propio':'') + '" id="msg-' + msg.id + '">' +
+    return '<div class="foro-msg' + (esPropio?' foro-msg-propio':'') + (esMaestroMsg?' foro-msg-maestro':'') + '" id="msg-' + msg.id + '">' +
       btnDel +
       '<div class="foro-msg-header"><span class="foro-msg-apodo">' + msg.apodo + '</span><span class="foro-msg-fecha">' + fecha + '</span></div>' +
       '<div class="foro-msg-texto">' + msg.texto.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>' +
@@ -1370,7 +1423,8 @@ document.addEventListener('click', async function(e) {
   if (action === 'copiarslot') { window.copiarSlot(parseInt(idx)); }
   if (action === 'aprobar')    { await window.aprobarLibro(id, btn.dataset.socio); }
   if (action === 'rechazar')   { await window.rechazarLibro(id); }
-  if (action === 'enviarmsg')  { await window.enviarMensajeForo(); }
+  if (action === 'enviarmsg')     { await window.enviarMensajeForo(); }
+  if (action === 'maestroenviarmsg') { await window.enviarMensajeMaestro(); }
 });
 
 
@@ -1452,6 +1506,25 @@ function mostrarToast(msg) {
   setTimeout(function() { t.classList.remove('visible'); }, 3500);
 }
 
+window.enviarMensajeMaestro = async function() {
+  var input = document.getElementById('maestroMsgInput');
+  var texto = input.value.trim();
+  if (!texto || texto.length < 2) return;
+  input.disabled = true;
+  try {
+    await addDoc(collection(db, 'club_foro'), {
+      apodo: '📜 Maestro de Lectura',
+      texto: texto,
+      esMaestro: true,
+      timestamp: serverTimestamp()
+    });
+    input.value = '';
+    await cargarForo();
+    await cargarPanelMaestro();
+  } catch(e) { console.error(e); }
+  input.disabled = false;
+  input.focus();
+};
 applyVol();
 init();
 </script>
